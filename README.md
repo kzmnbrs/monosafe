@@ -33,8 +33,6 @@ type ATM struct {
 		Lat float64
 		Lon float64
 	}
-	Open24h    bool
-	CanEatCash bool
 }
 
 type ATMs struct {
@@ -77,15 +75,15 @@ func (t *ATMs) Filter(open24, canEatCash bool) iter.Seq[*ATM] {
 func main() {
 	sigint, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
-	cdcReset := make(chan struct{})
+	changeDataCapture := make(chan struct{})
 
 	atmSafe := monosafe.MustLockFree[ATMs](
 		func(ctx context.Context, oldValue *ATMs) (*ATMs, error) {
-			// Query DB and all
+			// Query DB and all. You can return the old value
 		},
 	)
 	if err := atmSafe.Run(sigint,
-		monosafe.WithManualControl(cdcReset),
+		monosafe.WithManualControl(changeDataCapture),
 		monosafe.WithTick(time.Minute*5),
 	); err != nil {
 		log.Fatal("run atm safe: ", err)
