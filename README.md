@@ -26,15 +26,6 @@ import (
 	"github.com/kzmnbrs/monosafe"
 )
 
-type ATM struct {
-	ID       uint32
-	Title    string
-	Location struct {
-		Lat float64
-		Lon float64
-	}
-}
-
 type ATMs struct {
 	idToATM      map[uint32]*ATM
 	bmOpen24     bitmap.Bitmap
@@ -62,12 +53,8 @@ func (t *ATMs) Filter(open24, canEatCash bool) iter.Seq[*ATM] {
 			query.And(t.bmCanEatCash)
 		}
 
-		yieldBreak := false
 		query.Range(func(id uint32) {
-			if yieldBreak {
-				return
-			}
-			yieldBreak = yield(t.idToATM[id])
+			yield(t.idToATM[id])
 		})
 	}
 }
