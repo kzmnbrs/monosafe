@@ -56,6 +56,7 @@ func (t *ATMs) Filter(open24, canEatCash bool) iter.Seq[*ATM] {
 		query.Range(func(id uint32) {
 			yield(t.idToATM[id])
 		})
+		queryPool.Put(query)
 	}
 }
 
