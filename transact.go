@@ -33,6 +33,14 @@ func NewTransact[T any](reval RevalidateFunc[T]) (*Transact[T], error) {
 	return &t, nil
 }
 
+func MustTransact[T any](reval RevalidateFunc[T]) *Transact[T] {
+	t, err := NewTransact(reval)
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
 // View executes a read-only transaction.
 func (t *Transact[T]) View(txn func(*T)) {
 	t.mtx.RLock()

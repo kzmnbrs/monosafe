@@ -23,10 +23,10 @@ func NewLockFree[T any](reval RevalidateFunc[T]) (*LockFree[T], error) {
 	return &f, nil
 }
 
-func MustLockFree[T any](loadFunc RevalidateFunc[T]) *LockFree[T] {
-	lf, err := NewLockFree(loadFunc)
+func MustLockFree[T any](reval RevalidateFunc[T]) *LockFree[T] {
+	f, err := NewLockFree(reval)
 	if err != nil {
 		panic(err)
 	}
-	return lf
+	return f
 }
