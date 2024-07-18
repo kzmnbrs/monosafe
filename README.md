@@ -90,7 +90,7 @@ func main() {
 	}
 
 	http.DefaultServeMux.HandleFunc("/atm", func(w http.ResponseWriter, r *http.Request) {
-		atmSafe.Load().Filter(r.Form.Has("open24h"), r.Form.Has("can_eat_cash"))
+		iter := atmSafe.Load().Filter(r.Form.Has("open24h"), r.Form.Has("can_eat_cash"))
 		// ...
 	})
 }
