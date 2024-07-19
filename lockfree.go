@@ -10,9 +10,9 @@ type LockFree[T any] struct {
 	value atomic.Pointer[T]
 }
 
-func NewLockFree[T any](reval RevalidateFunc[T]) (*LockFree[T], error) {
+func NewLockFree[T any](loader Loader[T]) (*LockFree[T], error) {
 	f := LockFree[T]{}
-	run, err := newRunner[T](reval,
+	run, err := newRunner[T](loader,
 		func() *T { return f.value.Load() },
 		func(x *T) { f.value.Store(x) },
 	)
@@ -24,8 +24,8 @@ func NewLockFree[T any](reval RevalidateFunc[T]) (*LockFree[T], error) {
 	return &f, nil
 }
 
-func MustLockFree[T any](reval RevalidateFunc[T]) *LockFree[T] {
-	f, err := NewLockFree(reval)
+func MustLockFree[T any](loader Loader[T]) *LockFree[T] {
+	f, err := NewLockFree(loader)
 	if err != nil {
 		panic(err)
 	}

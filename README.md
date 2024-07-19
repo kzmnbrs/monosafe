@@ -66,16 +66,16 @@ func main() {
 	changeDataCapture := make(chan struct{})
 
 	atmSafe, err := monosafe.MustLockFree[ATMs](
-		func(ctx context.Context, oldValue *ATMs) (*ATMs, error) {
+		monosafe.LoaderFunc[ATMs](func(ctx context.Context, oldValue *ATMs) (*ATMs, error) {
 			// Query DB and all. You can return the old value
-		},
+		}),
 	).Run(sigint, monosafe.WithManualControl(changeDataCapture), monosafe.WithTick(time.Minute*5))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	http.DefaultServeMux.HandleFunc("/atm", func(w http.ResponseWriter, r *http.Request) {
-		iter := atmSafe.Load().Filter(r.Form.Has("open24h"), r.Form.Has("can_eat_cash"))
+		iter := atmSafe.Get().Filter(r.Form.Has("open24h"), r.Form.Has("can_eat_cash"))
 		// ...
 	})
 }

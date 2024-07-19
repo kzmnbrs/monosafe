@@ -11,38 +11,38 @@ import (
 )
 
 type SpyImpl struct {
-	revalNum atomic.Int32
-	value    atomic.Pointer[int]
+	reloadNum atomic.Int32
+	value     atomic.Pointer[int]
 	runner[int]
 }
 
 func TestNewRunner(t *testing.T) {
-	reval := func(ctx context.Context, oldValue *int) (*int, error) {
+	loader := LoaderFunc[int](func(ctx context.Context, oldValue *int) (*int, error) {
 		return nil, nil
-	}
-	load := func() *int { return nil }
+	})
+	get := func() *int { return nil }
 	swap := func(*int) {}
 
 	t.Run("ok", func(t *testing.T) {
-		run, err := newRunner(reval, load, swap)
+		run, err := newRunner(loader, get, swap)
 		assert.NotZero(t, run)
 		assert.Nil(t, err)
 	})
 
-	t.Run("no revalidate func", func(t *testing.T) {
-		run, err := newRunner[int](nil, load, swap)
+	t.Run("no loader", func(t *testing.T) {
+		run, err := newRunner[int](nil, get, swap)
 		assert.Zero(t, run)
 		assert.NotNil(t, err)
 	})
 
-	t.Run("no load func", func(t *testing.T) {
-		run, err := newRunner[int](reval, nil, swap)
+	t.Run("no get func", func(t *testing.T) {
+		run, err := newRunner[int](loader, nil, swap)
 		assert.Zero(t, run)
 		assert.NotNil(t, err)
 	})
 
 	t.Run("no swap func", func(t *testing.T) {
-		run, err := newRunner[int](reval, load, nil)
+		run, err := newRunner[int](loader, get, nil)
 		assert.Zero(t, run)
 		assert.NotNil(t, err)
 	})
@@ -52,11 +52,11 @@ func TestRunner_Run(t *testing.T) {
 	spyImpl := func() *SpyImpl {
 		impl := SpyImpl{}
 		run, _ := newRunner[int](
-			func(ctx context.Context, oldValue *int) (*int, error) {
-				impl.revalNum.Add(1)
+			LoaderFunc[int](func(ctx context.Context, oldValue *int) (*int, error) {
+				impl.reloadNum.Add(1)
 				num := rand.Intn(42)
 				return &num, nil
-			},
+			}),
 			func() *int {
 				return impl.value.Load()
 			},
@@ -79,7 +79,7 @@ func TestRunner_Run(t *testing.T) {
 		time.Sleep(time.Millisecond * 40)
 		cancel()
 
-		assert.GreaterOrEqual(t, int32(5), impl.revalNum.Load())
+		assert.GreaterOrEqual(t, int32(5), impl.reloadNum.Load())
 	})
 
 	t.Run("no timer", func(t *testing.T) {
@@ -98,7 +98,7 @@ func TestRunner_Run(t *testing.T) {
 		time.Sleep(time.Millisecond * 40)
 		cancel()
 
-		assert.Equal(t, int32(3), impl.revalNum.Load())
+		assert.Equal(t, int32(3), impl.reloadNum.Load())
 	})
 
 	t.Run("negative tick", func(t *testing.T) {
@@ -141,7 +141,7 @@ func TestRunner_Run(t *testing.T) {
 		time.Sleep(time.Millisecond * 40)
 		cancel()
 
-		assert.Equal(t, int32(3), impl.revalNum.Load())
+		assert.Equal(t, int32(3), impl.reloadNum.Load())
 	})
 
 	t.Run("manual control closure with timer", func(t *testing.T) {
@@ -163,6 +163,6 @@ func TestRunner_Run(t *testing.T) {
 		time.Sleep(time.Millisecond * 40) // 4
 		cancel()
 
-		assert.True(t, impl.revalNum.Load() >= 9 && impl.revalNum.Load() < 12)
+		assert.True(t, impl.reloadNum.Load() >= 9 && impl.reloadNum.Load() < 12)
 	})
 }

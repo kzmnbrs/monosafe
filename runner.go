@@ -9,39 +9,39 @@ import (
 )
 
 type runner[T any] struct {
-	guard *atomic.Bool
-	reval RevalidateFunc[T]
-	load  loadFunc[T]
-	swap  swapFunc[T]
+	guard  *atomic.Bool
+	loader Loader[T]
+	get    getFunc[T]
+	swap   swapFunc[T]
 }
 
 type (
-	loadFunc[T any] func() *T
+	getFunc[T any]  func() *T
 	swapFunc[T any] func(newValue *T)
 )
 
-func newRunner[T any](reval RevalidateFunc[T], load loadFunc[T], swap swapFunc[T]) (runner[T], error) {
-	if reval == nil {
-		return runner[T]{}, errors.New("no revalidation func")
+func newRunner[T any](loader Loader[T], get getFunc[T], swap swapFunc[T]) (runner[T], error) {
+	if loader == nil {
+		return runner[T]{}, errors.New("no loader")
 	}
-	if load == nil {
-		return runner[T]{}, errors.New("no load func")
+	if get == nil {
+		return runner[T]{}, errors.New("no get func")
 	}
 	if swap == nil {
 		return runner[T]{}, errors.New("no swap func")
 	}
 	return runner[T]{
-		guard: &atomic.Bool{},
-		reval: reval,
-		load:  load,
-		swap:  swap,
+		guard:  &atomic.Bool{},
+		loader: loader,
+		get:    get,
+		swap:   swap,
 	}, nil
 }
 
-// Run starts revalidation timer, which is reset by either [WithManualControl]
+// Run starts reload timer, which is reset by either [WithManualControl]
 // or [DefaultTick] ([WithTick]).
 //
-// Returns initial revalidation error. Consecutive errors can be observed [WithFuncOnError].
+// Returns initial load error. Consecutive errors can be observed [WithFuncOnError].
 //
 // Panics when called more than once.
 func (r *runner[T]) Run(ctx context.Context, opts ...RunOption) error {
@@ -50,14 +50,14 @@ func (r *runner[T]) Run(ctx context.Context, opts ...RunOption) error {
 	}
 
 	var (
-		manualReval <-chan struct{}
-		tick        = DefaultTick
-		onError     = func(error) {}
+		manualReload <-chan struct{}
+		tick         = DefaultTick
+		onError      = func(error) {}
 	)
 	for i := range opts {
 		switch opt := opts[i].(type) {
 		case WithManualControl:
-			manualReval = opt
+			manualReload = opt
 		case WithTick:
 			tick = time.Duration(opt)
 		case WithFuncOnError:
@@ -67,11 +67,11 @@ func (r *runner[T]) Run(ctx context.Context, opts ...RunOption) error {
 	if tick < 0 {
 		return fmt.Errorf("negative tick value: %v", tick)
 	}
-	if manualReval == nil && tick == 0 {
-		return errors.New("either revalidation signal or tick must be set")
+	if manualReload == nil && tick == 0 {
+		return errors.New("either reload signal or tick must be set")
 	}
 
-	newValue, err := r.reval(ctx, r.load())
+	newValue, err := r.loader.Load(ctx, r.get())
 	if err != nil {
 		return err
 	}
@@ -93,13 +93,13 @@ func (r *runner[T]) Run(ctx context.Context, opts ...RunOption) error {
 			select {
 			case <-ctx.Done():
 				return
-			case _, more := <-manualReval:
+			case _, more := <-manualReload:
 				if !more {
 					if timer != nil {
-						manualReval = nil
+						manualReload = nil
 						continue
 					}
-					return // No revalidation triggers left.
+					return // No reload triggers left.
 				}
 			case <-timerReval:
 			}
@@ -107,8 +107,8 @@ func (r *runner[T]) Run(ctx context.Context, opts ...RunOption) error {
 				timer.Reset(tick)
 			}
 
-			oldValue := r.Load()
-			newValue, err := r.reval(ctx, oldValue)
+			oldValue := r.get()
+			newValue, err := r.loader.Load(ctx, oldValue)
 			if err != nil {
 				onError(err)
 				continue
@@ -123,9 +123,9 @@ func (r *runner[T]) Run(ctx context.Context, opts ...RunOption) error {
 	return nil
 }
 
-// Load retrieves the value.
-func (r *runner[T]) Load() *T {
-	return r.load()
+// Get retrieves the value.
+func (r *runner[T]) Get() *T {
+	return r.get()
 }
 
 // Swap the value. Thread-safe.

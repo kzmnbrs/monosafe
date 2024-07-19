@@ -1,5 +1,5 @@
 // Package monosafe provides a couple of single-value in-memory
-// caches with auto- and manual validation controls.
+// caches with auto- and manual reload controls.
 //
 // Anticipated workloads are read-heavy, with none-to-little writes.
 // e.g. caching smaller lookup tables or API responses.
@@ -15,26 +15,36 @@ import (
 	"time"
 )
 
-// RevalidateFunc defines cache revalidation. Typically, a repository method
-// or an API handle.
-//
-// It may return the old value.
-type RevalidateFunc[T any] func(ctx context.Context, oldValue *T) (*T, error)
+type (
+	// Loader defines cache reload. Typically, a repository method
+	// or an API handle.
+	//
+	// It may return the old value.
+	Loader[T any] interface {
+		Load(ctx context.Context, oldValue *T) (*T, error)
+	}
+
+	LoaderFunc[T any] func(ctx context.Context, oldValue *T) (*T, error)
+)
 
 type (
 	RunOption = any
 
-	// WithManualControl serves a manual revalidation control.
+	// WithManualControl serves a manual reload control.
 	WithManualControl <-chan struct{}
 
-	// WithTick sets revalidation timer interval. Zero means no timer (manual only).
+	// WithTick sets reload timer interval. Zero means no timer (manual only).
 	//
 	// Defaults to [DefaultTick].
 	// Negative values are considered invalid.
 	WithTick time.Duration
 
-	// WithFuncOnError is called on each revalidation failure, except for the first one.
+	// WithFuncOnError is called on each reload failure, except for the first one.
 	WithFuncOnError func(error)
 )
 
 const DefaultTick = time.Minute
+
+func (f LoaderFunc[T]) Load(ctx context.Context, oldValue *T) (*T, error) {
+	return f(ctx, oldValue)
+}

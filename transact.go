@@ -11,9 +11,9 @@ type Transact[T any] struct {
 	runner[T]
 }
 
-func NewTransact[T any](reval RevalidateFunc[T]) (*Transact[T], error) {
+func NewTransact[T any](loader Loader[T]) (*Transact[T], error) {
 	t := Transact[T]{}
-	run, err := newRunner[T](reval,
+	run, err := newRunner[T](loader,
 		func() *T {
 			t.mtx.RLock()
 			value := t.value
@@ -34,8 +34,8 @@ func NewTransact[T any](reval RevalidateFunc[T]) (*Transact[T], error) {
 	return &t, nil
 }
 
-func MustTransact[T any](reval RevalidateFunc[T]) *Transact[T] {
-	t, err := NewTransact(reval)
+func MustTransact[T any](loader Loader[T]) *Transact[T] {
+	t, err := NewTransact(loader)
 	if err != nil {
 		panic(err)
 	}
