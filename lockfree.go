@@ -1,6 +1,7 @@
 package monosafe
 
 import (
+	"context"
 	"sync/atomic"
 )
 
@@ -29,4 +30,8 @@ func MustLockFree[T any](reval RevalidateFunc[T]) *LockFree[T] {
 		panic(err)
 	}
 	return f
+}
+
+func (f *LockFree[T]) Run(ctx context.Context, opts ...RunOption) (*LockFree[T], error) {
+	return f, f.runner.Run(ctx, opts)
 }

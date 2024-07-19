@@ -1,6 +1,7 @@
 package monosafe
 
 import (
+	"context"
 	"sync"
 )
 
@@ -39,6 +40,10 @@ func MustTransact[T any](reval RevalidateFunc[T]) *Transact[T] {
 		panic(err)
 	}
 	return t
+}
+
+func (t *Transact[T]) Run(ctx context.Context, opts ...RunOption) (*Transact[T], error) {
+	return t, t.runner.Run(ctx, opts)
 }
 
 // View executes a read-only transaction.

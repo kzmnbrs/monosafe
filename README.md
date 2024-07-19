@@ -65,16 +65,13 @@ func main() {
 
 	changeDataCapture := make(chan struct{})
 
-	atmSafe := monosafe.MustLockFree[ATMs](
+	atmSafe, err := monosafe.MustLockFree[ATMs](
 		func(ctx context.Context, oldValue *ATMs) (*ATMs, error) {
 			// Query DB and all. You can return the old value
 		},
-	)
-	if err := atmSafe.Run(sigint,
-		monosafe.WithManualControl(changeDataCapture),
-		monosafe.WithTick(time.Minute*5),
-	); err != nil {
-		log.Fatal("run atm safe: ", err)
+	).Run(sigint, monosafe.WithManualControl(changeDataCapture), monosafe.WithTick(time.Minute*5))
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	http.DefaultServeMux.HandleFunc("/atm", func(w http.ResponseWriter, r *http.Request) {
@@ -82,4 +79,5 @@ func main() {
 		// ...
 	})
 }
+
 ```
