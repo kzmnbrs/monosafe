@@ -69,7 +69,7 @@ func main() {
 		monosafe.LoaderFunc[ATMs](func(ctx context.Context, oldValue *ATMs) (*ATMs, error) {
 			// Query DB and all. You can return the old value
 		}),
-	).Run(sigint, monosafe.WithManualControl(changeDataCapture), monosafe.WithTick(time.Minute*5))
+	).Run(sigint, monosafe.WithManualReload(changeDataCapture), monosafe.WithReloadTimer(time.Minute*5))
 	if err != nil {
 		log.Fatal(err)
 	}
