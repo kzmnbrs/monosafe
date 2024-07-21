@@ -74,7 +74,7 @@ func TestRunner_Run(t *testing.T) {
 
 		impl := spyImpl()
 		assert.NoError(t, impl.Run(ctx,
-			WithTick(time.Millisecond*10),
+			WithReloadTimer(time.Millisecond*10),
 		))
 		time.Sleep(time.Millisecond * 40)
 		cancel()
@@ -90,8 +90,8 @@ func TestRunner_Run(t *testing.T) {
 
 		impl := spyImpl()
 		assert.NoError(t, impl.Run(ctx,
-			WithManualControl(mc),
-			WithTick(0),
+			WithManualReload(mc),
+			WithReloadTimer(0),
 		))
 		mc <- struct{}{}
 		mc <- struct{}{}
@@ -107,7 +107,7 @@ func TestRunner_Run(t *testing.T) {
 
 		impl := spyImpl()
 		assert.Error(t, impl.Run(ctx,
-			WithTick(-1),
+			WithReloadTimer(-1),
 		))
 	})
 
@@ -117,8 +117,8 @@ func TestRunner_Run(t *testing.T) {
 
 		impl := spyImpl()
 		assert.Error(t, impl.Run(ctx,
-			WithManualControl(nil),
-			WithTick(0),
+			WithManualReload(nil),
+			WithReloadTimer(0),
 		))
 	})
 
@@ -130,8 +130,8 @@ func TestRunner_Run(t *testing.T) {
 
 		impl := spyImpl()
 		assert.NoError(t, impl.Run(ctx,
-			WithManualControl(mc),
-			WithTick(0),
+			WithManualReload(mc),
+			WithReloadTimer(0),
 		))
 		mc <- struct{}{}
 		mc <- struct{}{}
@@ -152,8 +152,8 @@ func TestRunner_Run(t *testing.T) {
 
 		impl := spyImpl()
 		assert.NoError(t, impl.Run(ctx,
-			WithManualControl(mc),
-			WithTick(time.Millisecond*10),
+			WithManualReload(mc),
+			WithReloadTimer(time.Millisecond*10),
 		))
 		mc <- struct{}{}
 		mc <- struct{}{}

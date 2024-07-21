@@ -30,20 +30,17 @@ type (
 type (
 	RunOption = any
 
-	// WithManualControl serves a manual reload control.
-	WithManualControl <-chan struct{}
+	// WithManualReload serves a manual reload control. Resets reload timer on writes.
+	WithManualReload <-chan struct{}
 
-	// WithTick sets reload timer interval. Zero means no timer (manual only).
+	// WithReloadTimer sets reload timer interval. Zero means no timer (manual only).
 	//
-	// Defaults to [DefaultTick].
+	// Defaults to [DefaultReloadInterval].
 	// Negative values are considered invalid.
-	WithTick time.Duration
-
-	// WithFuncOnError is called on each reload failure, except for the first one.
-	WithFuncOnError func(error)
+	WithReloadTimer time.Duration
 )
 
-const DefaultTick = time.Minute
+const DefaultReloadInterval = time.Minute
 
 func (f LoaderFunc[T]) Load(ctx context.Context, oldValue *T) (*T, error) {
 	return f(ctx, oldValue)

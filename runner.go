@@ -38,8 +38,8 @@ func newRunner[T any](loader Loader[T], get getFunc[T], swap swapFunc[T]) (runne
 	}, nil
 }
 
-// Run starts reload timer, which is reset by either [WithManualControl]
-// or [DefaultTick] ([WithTick]).
+// Run starts reload timer, which is reset by either [WithManualReload]
+// or [DefaultReloadInterval] ([WithReloadTimer]).
 //
 // Returns initial load error. Consecutive errors can be observed [WithFuncOnError].
 //
@@ -51,17 +51,14 @@ func (r *runner[T]) Run(ctx context.Context, opts ...RunOption) error {
 
 	var (
 		manualReload <-chan struct{}
-		tick         = DefaultTick
-		onError      = func(error) {}
+		tick         = DefaultReloadInterval
 	)
 	for i := range opts {
 		switch opt := opts[i].(type) {
-		case WithManualControl:
+		case WithManualReload:
 			manualReload = opt
-		case WithTick:
+		case WithReloadTimer:
 			tick = time.Duration(opt)
-		case WithFuncOnError:
-			onError = opt
 		}
 	}
 	if tick < 0 {
@@ -110,7 +107,6 @@ func (r *runner[T]) Run(ctx context.Context, opts ...RunOption) error {
 			oldValue := r.get()
 			newValue, err := r.loader.Load(ctx, oldValue)
 			if err != nil {
-				onError(err)
 				continue
 			}
 
